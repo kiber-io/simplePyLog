@@ -2,10 +2,25 @@ from colorama import init, Fore
 from pathlib import Path
 from sys import platform
 from datetime import datetime
+from pathlib import Path
 import re
 
-regexResponse = r'("(username|password|access_token)":\s?)".*?"'
-regexRequest = r'((username|password|access_token)=).*?(?=[&\s])'
+elogfile = Path(Path(__file__).parents[1].resolve(), 'logs/error.log')
+netlogfile = Path(Path(__file__).parents[1].resolve(), 'logs/network.log')
+dlogfile = Path(Path(__file__).parents[1].resolve(), 'logs/debug.log')
+regexReplacing = {}
+
+def set_elogfile(file):
+    global elogfile
+    elogfile = Path(Path(__file__).parents[1].resolve(), file)
+
+def set_dlogfile(file):
+    global dlogfile
+    dlogfile = Path(Path(__file__).parents[1].resolve(), file)
+
+def set_netlogfile(file):
+    global netlogfile
+    netlogfile = Path(Path(__file__).parents[1].resolve(), file)
 
 def eprint(text, log=False):
     logprint(Fore.RED + 'E: ', text, log)
@@ -29,40 +44,25 @@ def logprint(prefix, text, log):
         elog(text)
 
 def dlog(text):
-    if platform == 'win32':
-        filename = 'logs\\debug.log'
-    else:
-        filename = 'logs/debug.log'
-    log(filename, text)
+    log(dlogfile, text)
 
 def netlog(text):
-    if platform == 'win32':
-        filename = 'logs\\network.log'
-    else:
-        filename = 'logs/network.log'
-    log(filename, text)
+    log(netlogfile, text)
 
 def elog(text):
-    if platform == 'win32':
-        filename = 'logs\\error.log'
-    else:
-        filename = 'logs/error.log'
-    log(filename, text)
+    log(elogfile, text)
+
+def set_regex_replacing(regexes):
+    global regexReplacing
+    regexReplacing = regexes
 
 def log(filename, text):
     text = str(text)
     current_time = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-    text = re.sub(
-        regexResponse,
-        r'\g<1>"ooops_hidden"',
-        re.sub(
-            regexRequest,
-            r'\g<1>ooops_hidden',
-            text
-        )
-    )
+    for regex in regexReplacing:
+        text = re.sub(regex, regexReplacing[regex], text)
     text = '[' + current_time + '] ' + text + '\n'
-    Path('logs').mkdir(exist_ok=True)
+    filename.parents[0].mkdir(exist_ok=True)
     with open(filename, 'a', encoding='utf-8') as f:
         f.write(text)
 
